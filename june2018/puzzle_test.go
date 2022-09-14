@@ -28,7 +28,7 @@ type tuple struct {
 }
 
 func (r RowCollection) PassesContinuity(grid [][]int) bool {
-	visited := make(map[tuple]struct{})
+	visited := make([]int, 49)
 
 	for i := 0; i < len(grid); i++ {
 		for j := 0; j < len(grid); j++ {
@@ -42,40 +42,42 @@ func (r RowCollection) PassesContinuity(grid [][]int) bool {
 	return false
 }
 
-func (r RowCollection) getChunkCount(grid [][]int, i, j int, visited map[tuple]struct{}) int {
-	t := tuple{uint8(i), uint8(j)}
-	if _, ok := visited[t]; ok {
+func (r RowCollection) getChunkCount(grid [][]int, i, j int, visited []int) int {
+	//t := tuple{uint8(i), uint8(j)}
+	if visited[i*7+j] == 1 {
 		return 0
 	}
+	//if _, ok := visited[t]; ok {
+	//	return 0
+	//}
 
-	var ok bool
 	count := 1
-	visited[t] = struct{}{}
+	visited[i*7+j] = 1
 
 	// Top
 	if j > 0 && grid[i][j-1] != 0 {
-		if _, ok = visited[tuple{uint8(i), uint8(j - 1)}]; !ok {
+		if visited[i*7+j-1] == 0 {
 			count += r.getChunkCount(grid, i, j-1, visited)
 		}
 	}
 
 	// Left
 	if i > 0 && grid[i-1][j] != 0 {
-		if _, ok = visited[tuple{uint8(i - 1), uint8(j)}]; !ok {
+		if visited[(i-1)*7+j] == 0 {
 			count += r.getChunkCount(grid, i-1, j, visited)
 		}
 	}
 
 	// Right
 	if j < 6 && grid[i][j+1] != 0 {
-		if _, ok = visited[tuple{uint8(i), uint8(j + 1)}]; !ok {
+		if visited[i*7+j+1] == 0 {
 			count += r.getChunkCount(grid, i, j+1, visited)
 		}
 	}
 
 	// Bottom
 	if i < 6 && grid[i+1][j] != 0 {
-		if _, ok = visited[tuple{uint8(i + 1), uint8(j)}]; !ok {
+		if visited[(i+1)*7+j] == 0 {
 			count += r.getChunkCount(grid, i+1, j, visited)
 		}
 	}
