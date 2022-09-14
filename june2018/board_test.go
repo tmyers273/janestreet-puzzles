@@ -33,6 +33,7 @@ var contiguous1 = [][]int{
 }
 
 // 2585 ns / op
+// 2014 ns/op
 func BenchmarkPassesContinuity(b *testing.B) {
 	rows1 := NewRowRepresentation(oGrid)
 	rows2 := NewRowRepresentation(contiguous1)
