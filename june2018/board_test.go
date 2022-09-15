@@ -2,6 +2,7 @@ package june2018
 
 import (
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -18,6 +19,16 @@ func TestRowRepresentation(t *testing.T) {
 	// Set a number so that it fails the 2x2 test
 	oGrid[5][1] = 1
 	rows = NewRowRepresentation(oGrid)
+	r = rows.Passes2x2()
+	assert.Equal(t, false, r)
+
+	// Set a number so that it fails the 2x2 test
+	oGrid[5][1] = 0
+	oGrid[6][6] = 1
+	oGrid[5][6] = 1
+	oGrid[5][5] = 1
+	rows = NewRowRepresentation(oGrid)
+	spew.Dump(rows)
 	r = rows.Passes2x2()
 	assert.Equal(t, false, r)
 }
@@ -42,6 +53,17 @@ func BenchmarkPassesContinuity(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rows1.PassesContinuity(oGrid)
 		rows2.PassesContinuity(contiguous1)
+	}
+}
+
+// 6.043 ns/op
+func BenchmarkPasses4Check(b *testing.B) {
+	rows1 := NewRowRepresentation(oGrid)
+	rows2 := NewRowRepresentation(contiguous1)
+
+	for i := 0; i < b.N; i++ {
+		rows1.Passes4Check()
+		rows2.Passes4Check()
 	}
 }
 
@@ -76,7 +98,7 @@ func TestPassesContinuity(t *testing.T) {
 	}
 }
 
-// 1.87 ns/op
+// 2.921 ns/op
 func BenchmarkPasses2x2(b *testing.B) {
 	oGrid[5][1] = 1
 	rows := NewRowRepresentation(oGrid)

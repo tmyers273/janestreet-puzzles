@@ -3,138 +3,23 @@ package june2018
 import (
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
+	"os"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
 )
 
-type Row byte
-type Col byte
-type RowCollection struct {
-	rows  []Row
-	count int
-}
-
-func (r RowCollection) String() string {
-	out := "\n"
-	for i := 0; i < len(r.rows); i++ {
-		out += strconv.Itoa(i) + ": " + r.rows[i].String() + "\n"
+func printBin(num int) {
+	fmt.Printf("%049b\n", num)
+	s := fmt.Sprintf("%049b\n", num)
+	for i := 0; i < 49; i += 7 {
+		fmt.Printf("%d: %s\n", i/7, s[i:i+7])
 	}
-
-	return out
 }
 
 type tuple struct {
 	row, col uint8
-}
-
-func (r RowCollection) PassesContinuity(grid [][]int) bool {
-	visited := make([]int, 49)
-
-	for i := 0; i < len(grid); i++ {
-		for j := 0; j < len(grid); j++ {
-			if grid[i][j] != 0 {
-				cnt := r.getChunkCount(grid, i, j, visited)
-				return cnt == r.count
-			}
-		}
-	}
-
-	return false
-}
-
-func (r RowCollection) getChunkCount(grid [][]int, i, j int, visited []int) int {
-	//t := tuple{uint8(i), uint8(j)}
-	if visited[i*7+j] == 1 {
-		return 0
-	}
-	//if _, ok := visited[t]; ok {
-	//	return 0
-	//}
-
-	count := 1
-	visited[i*7+j] = 1
-
-	// Top
-	if j > 0 && grid[i][j-1] != 0 {
-		if visited[i*7+j-1] == 0 {
-			count += r.getChunkCount(grid, i, j-1, visited)
-		}
-	}
-
-	// Left
-	if i > 0 && grid[i-1][j] != 0 {
-		if visited[(i-1)*7+j] == 0 {
-			count += r.getChunkCount(grid, i-1, j, visited)
-		}
-	}
-
-	// Right
-	if j < 6 && grid[i][j+1] != 0 {
-		if visited[i*7+j+1] == 0 {
-			count += r.getChunkCount(grid, i, j+1, visited)
-		}
-	}
-
-	// Bottom
-	if i < 6 && grid[i+1][j] != 0 {
-		if visited[(i+1)*7+j] == 0 {
-			count += r.getChunkCount(grid, i+1, j, visited)
-		}
-	}
-
-	return count
-}
-
-func (r RowCollection) Passes2x2() bool {
-	var sum uint8
-	rows := r.rows
-
-	sum += uint8(rows[0]) & uint8(rows[1]) & (3 << 0)
-	sum += uint8(rows[1]) & uint8(rows[2]) & (3 << 1)
-	sum += uint8(rows[2]) & uint8(rows[3]) & (3 << 2)
-	sum += uint8(rows[3]) & uint8(rows[4]) & (3 << 3)
-	sum += uint8(rows[4]) & uint8(rows[5]) & (3 << 4)
-	sum += uint8(rows[5]) & uint8(rows[6]) & (3 << 5)
-
-	return sum == 0
-}
-
-func (r Row) String() string {
-	return fmt.Sprintf("%07b", r)
-}
-
-func NewRowRepresentation(grid [][]int) RowCollection {
-	out := make([]Row, len(grid))
-	count := 0
-	for i := 0; i < len(grid); i++ {
-		out[i] = NewRow(grid[i])
-
-		for j := 0; j < 7; j++ {
-			if grid[i][j] != 0 {
-				count++
-			}
-		}
-	}
-
-	return RowCollection{
-		rows:  out,
-		count: count,
-	}
-}
-
-func NewRow(row []int) Row {
-	out := 0
-	for i := 0; i < 7; i++ {
-		if row[i] != 0 {
-			out |= 1 << (6 - i)
-		}
-	}
-
-	return Row(out)
-}
-
-func NewCol(col []int) Col {
-	return Col(NewRow(col))
 }
 
 /*
@@ -156,6 +41,16 @@ var oGrid = [][]int{
 	{0, 0, 0, 0, 0, 1, 0},
 }
 
+var oGridRotatedRight = [][]int{
+	{0, 2, 4, 0, 0, 0, 0},
+	{0, 0, 7, 0, 0, 0, 4},
+	{0, 0, 0, 0, 0, 6, 0},
+	{0, 7, 0, 4, 0, 3, 0},
+	{0, 4, 0, 0, 0, 0, 0},
+	{1, 0, 0, 0, 5, 0, 0},
+	{0, 0, 0, 0, 5, 6, 0},
+}
+
 var grid = [][]int{
 	// One row and col "border" of 0s
 	{0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -171,7 +66,7 @@ var grid = [][]int{
 
 func NewBoard() Board {
 	b := Board{
-		grid:        grid,
+		grid:        oGrid,
 		rowCount:    make([]int, 7),
 		colCount:    make([]int, 7),
 		digitCounts: make([]int, 7+1),
@@ -184,242 +79,283 @@ func NewBoard() Board {
 	return b
 }
 
-type Board struct {
-	grid        [][]int
-	rowCount    []int
-	colCount    []int
-	digitCounts []int
-	rowSum      []int
-	colSum      []int
-}
-
-func (b *Board) Set(row, col, value int) bool {
-	row--
-	col--
-	if b.rowCount[row] > 4 || b.colCount[col] > 4 {
-		return false
-	}
-
-	if b.rowSum[row]+value > 20 || b.colSum[col]+value > 20 {
-		return false
-	}
-
-	if b.digitCounts[value]+1 > value {
-		return false
-	}
-
-	tlCount := 0
-	trCount := 0
-	blCount := 0
-	brCount := 0
-
-	row++
-	col++
-
-	if b.grid[row-1][col-1] != 0 {
-		tlCount++
-	}
-	if b.grid[row-1][col] != 0 {
-		tlCount++
-		trCount++
-	}
-	if b.grid[row-1][col+1] != 0 {
-		trCount++
-	}
-	if b.grid[row][col-1] != 0 {
-		tlCount++
-		blCount++
-	}
-	if b.grid[row][col+1] != 0 {
-		trCount++
-		brCount++
-	}
-	if b.grid[row+1][col-1] != 0 {
-		blCount++
-	}
-	if b.grid[row+1][col] != 0 {
-		blCount++
-		brCount++
-	}
-	if b.grid[row+1][col+1] != 0 {
-		brCount++
-	}
-
-	if tlCount > 2 || trCount > 2 || blCount > 2 || brCount > 2 {
-		return false
-	}
-
-	b.grid[row][col] = value
-	// ..
-	// .x
-
-	// ..
-	// x.
-
-	// x.
-	// ..
-
-	// .x
-	// ..
-	return true
-}
-
-func (b *Board) String() string {
-	out := "\n -------------\n"
-
-	for i := 1; i < 8; i++ {
-		out += "|"
-		for j := 1; j < 8; j++ {
-			if b.grid[i][j] == 0 {
-				out += " |"
-			} else {
-				out += strconv.Itoa(b.grid[i][j]) + "|"
-			}
-		}
-		if i == 7 {
-			out += "\n ------------- \n"
-		} else {
-			out += "\n|-------------|\n"
-		}
-	}
-	out += "\n"
-
-	out += "  | Count   | Sum     | Digit\n"
-	out += "i | Row Col | Row Col | Count\n"
-	out += "-----------------------------\n"
-	for i := 0; i < 7; i++ {
-		out += fmt.Sprintf("%d | %3d %3d | %3d %3d |     %d\n", i+1, b.rowCount[i], b.colCount[i], b.rowSum[i], b.colSum[i], b.digitCounts[i+1])
-	}
-	//out += " --------------"
-
-	return out
-}
-
-func (b *Board) update() {
-	for i := 0; i < 7; i++ {
-		b.getRowCount(i)
-		b.getColCount(i)
-		b.getRowSum(i)
-		b.getColSum(i)
-	}
-	b.getDigitCounts()
-}
-
-func (b *Board) invalid() bool {
-	for i := 0; i < 7; i++ {
-		// Can only have 4 numbers in rows and cols
-		if b.rowCount[i] > 4 || b.colCount[i] > 4 {
-			return true
-		}
-
-		// Rows and cols must sum to exactly 20
-		if b.rowSum[i] > 20 || b.colSum[i] > 20 {
-			return true
-		}
-
-		// Can only have one 1, two 2's, etc.
-		if b.digitCounts[i+1] > i+1 {
-			return true
-		}
-
-		// @todo must form a connected region
-
-	}
-
-	// Every 2x2 subsquare must contain at least one empty cell
-	for i := 0; i < 6; i++ {
-		for j := 0; j < 6; j++ {
-			used := 0
-			if b.grid[i][j] != 0 {
-				used++
-			}
-			if b.grid[i+1][j] != 0 {
-				used++
-			}
-			if b.grid[i][j+1] != 0 {
-				used++
-			}
-			if b.grid[i+1][j+1] != 0 {
-				used++
-			}
-
-			if used == 4 {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func (b *Board) getDigitCounts() {
-	for i := 1; i < 8; i++ {
-		b.digitCounts[i] = 0
-	}
-
-	for i := 0; i < 7; i++ {
-		for j := 0; j < 7; j++ {
-			if b.grid[i][j] > 0 {
-				b.digitCounts[b.grid[i][j]]++
-			}
-		}
-	}
-}
-
-func (b *Board) getRowCount(i int) int {
-	count := 0
-	for _, v := range b.grid[i] {
-		if v != 0 {
-			count++
-		}
-	}
-
-	b.rowCount[i] = count
-	return count
-}
-
-func (b *Board) getColCount(i int) int {
-	count := 0
-	for j := 0; j < 7; j++ {
-		if b.grid[j][i] != 0 {
-			count++
-		}
-	}
-
-	b.colCount[i] = count
-	return count
-}
-
-func (b *Board) getRowSum(i int) int {
-	sum := 0
-
-	for _, v := range b.grid[i] {
-		sum += v
-	}
-
-	b.rowSum[i] = sum
-	return sum
-}
-
-func (b *Board) getColSum(i int) int {
-	sum := 0
-
-	for j := 0; j < 7; j++ {
-		sum += b.grid[j][i]
-	}
-
-	b.colSum[i] = sum
-	return sum
-}
-
 var rowCount = []int{1, 3, 2, 1, 2, 3, 1}
 var colCount = []int{2, 2, 1, 3, 1, 2, 2}
 var digitCounts = []int{0, 1, 1, 1, 4, 2, 2, 2}
 
+func loadValidKeys() ([]uint64, error) {
+	rawKeys, err := os.ReadFile("valid_keys.txt")
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(rawKeys)), "\n")
+	keys := make([]uint64, len(lines))
+	for i, line := range lines {
+		keys[i], _ = strconv.ParseUint(line, 10, 64)
+	}
+
+	return keys, nil
+}
+
+func printGrid(grid [][]int) {
+	for i := 0; i < 7; i++ {
+		for j := 0; j < 7; j++ {
+			if grid[i][j] == 0 {
+				fmt.Printf("_ ")
+			} else if grid[i][j] == 9 {
+				fmt.Printf("* ")
+			} else {
+				fmt.Printf("%d ", grid[i][j])
+			}
+		}
+		fmt.Println()
+	}
+}
+
+func TestValidBoardsPass2(t *testing.T) {
+	keys, err := loadValidKeys()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, key := range keys {
+		madeChanges := true
+		grid := NewBoardFromKey(key)
+		rows := NewRowRepresentation(oGrid)
+		changeCount := 0
+		//cols := NewRowRepresentation(oGrid).Transpose()
+
+		for madeChanges {
+			madeChanges = false
+
+			for i := 0; i < 7; i++ {
+				//fmt.Printf("count for row i: %d is %d\n", i, rows.GetCountNumbers(i))
+				if rows.GetCountNumbers(i) == 3 {
+					sum := 20
+					missingIndex := 0
+					for j := 0; j < 7; j++ {
+						if grid[i][j] == 9 {
+							missingIndex = j
+						} else {
+							sum -= grid[i][j]
+						}
+					}
+
+					if sum > 7 {
+						continue
+					}
+					fmt.Printf("Found 3 in row %d, so we can conclusively set (%d,%d) to %d\n", i, i, missingIndex, sum)
+
+					grid[i][missingIndex] = sum
+					rows.Set(uint8(i), uint8(missingIndex))
+					changeCount++
+					//cols = rows.Transpose()
+					madeChanges = true
+
+					//fmt.Println("After change:")
+					//printGrid(grid)
+					//fmt.Printf("rows: %s\n", rows)
+					//fmt.Println()
+					//fmt.Printf("rows: %s\n", rows)
+					//fmt.Printf("cols: %s\n", cols)
+				}
+			}
+			for i := 0; i < 7; i++ {
+				if rows.GetColCountNumbers(i) == 3 {
+					sum := 20
+					missingIndex := 0
+					for j := 0; j < 7; j++ {
+						if grid[j][i] == 9 {
+							missingIndex = j
+						} else {
+							sum -= grid[j][i]
+						}
+					}
+
+					if sum > 7 {
+						continue
+					}
+					fmt.Printf("Found 3 in col %d, so we can conclusively set (%d,%d) to %d\n", i, missingIndex, i, sum)
+
+					grid[missingIndex][i] = sum
+					rows.Set(uint8(missingIndex), uint8(i))
+					changeCount++
+					//cols = rows.Transpose()
+
+					//fmt.Println("After change")
+					//printGrid(grid)
+					//fmt.Printf("rows: %s\n", rows)
+					//fmt.Println()
+					//fmt.Printf("cols: %s\n", cols)
+
+					madeChanges = true
+				}
+			}
+		}
+
+		fmt.Printf("Finished for key %d. Have %d nums after %d changes\n", key, rows.count, changeCount)
+		printGrid(grid)
+		fmt.Println(rows)
+		if rows.count == 28 {
+			//fmt.Printf("cols: %s\n", cols)
+			fmt.Printf("rows: %s\n", rows)
+			//fmt.Println(rows.rows[i].ToSlice())
+
+			for i := 0; i < 7; i++ {
+				for j := 0; j < 7; j++ {
+					if grid[i][j] == 0 {
+						fmt.Printf("_ ")
+					} else if grid[i][j] == 9 {
+						fmt.Printf("* ")
+					} else {
+						fmt.Printf("%d ", grid[i][j])
+					}
+				}
+				fmt.Println()
+			}
+			fmt.Print("\n\n")
+
+			return
+		}
+	}
+}
+
+func NewBoardFromKey(key uint64) [][]int {
+	empties := generateEmpties()
+
+	grid := make([][]int, 7)
+	for i := 0; i < 7; i++ {
+		grid[i] = make([]int, 7)
+	}
+	for i := 0; i < 7; i++ {
+		copy(grid[i], oGrid[i])
+	}
+	for i := 0; i < 64; i++ {
+		v := key & (1 << i)
+		if v != 0 {
+			grid[empties[i].row][empties[i].col] = 9
+		}
+	}
+
+	//fmt.Printf("Board info for key %d:\n", key)
+
+	//fmt.Printf("\n\n")
+	return grid
+}
+
+func generateEmpties() []tuple {
+	var empties []tuple
+	var i, j uint8
+
+	for i = 0; i < 7; i++ {
+		for j = 0; j < 7; j++ {
+			if oGrid[i][j] == 0 {
+				empties = append(empties, tuple{i, j})
+			}
+		}
+	}
+
+	return empties
+}
+
+// TestGetBoards generates a list of valid board keys. We need a way to generate a list
+// of potential places to put the 15 unused numbers. This is done by looping through and
+// iterating a counter. The Hamming weight of the iterator is used and when it reaches
+// 15, we use the index. The set bits in this index are used to reference the unused
+// slots on the board. These get plugged in, then we check if the board structure is
+// valid. Board structure is just checking for 2x2 correctness, 4 per row/col correctness,
+// and continuity correctness.
+//
+// Once we have generated a list of valid keys, we need to do a second pass to generate
+// The actual numbers in the correct locations. Still a todo.
+func TestGetBoards(t *testing.T) {
+	empties := generateEmpties()
+
+	var iterations int
+	start := time.Now()
+
+	var key uint64 = 7669990665
+	var rows RowCollection
+	validCount := 0
+	rows = NewRowRepresentation(oGrid)
+	orig := NewRowRepresentation(oGrid)
+	grid := make([][]int, 7)
+	for i := 0; i < 7; i++ {
+		grid[i] = make([]int, 7)
+	}
+	var hammingWeight uint64
+	var x uint64
+	for {
+		copy(rows.rows, orig.rows)
+		rows.count = orig.count
+
+		hammingWeight = 0
+		for hammingWeight != 15 {
+			key++
+
+			x = key
+			x -= (x >> 1) & m1              //put count of each 2 bits into those 2 bits
+			x = (x & m2) + ((x >> 2) & m2)  //put count of each 4 bits into those 4 bits
+			x = (x + (x >> 4)) & m4         //put count of each 8 bits into those 8 bits
+			hammingWeight = (x * h01) >> 56 //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ...
+			//hammingWeight = getHammingWeight64Fast(key)
+		}
+
+		for i := 0; i < 64; i++ {
+			v := key & (1 << i)
+			if v != 0 {
+				rows.Set(empties[i].row, empties[i].col)
+			}
+		}
+
+		if rows.Passes2x2() && rows.Passes4Check() {
+			if rows.Transpose().Passes4Check() {
+				for i := 0; i < 7; i++ {
+					copy(grid[i], oGrid[i])
+				}
+				for i := 0; i < 64; i++ {
+					v := key & (1 << i)
+					if v != 0 {
+						grid[empties[i].row][empties[i].col] = 9
+					}
+				}
+
+				if rows.PassesContinuity(grid) {
+					fmt.Printf("********** Found another valid board! key = %d, cnt = %d\n", key, validCount)
+					validCount++
+
+					//return
+				}
+			}
+		}
+
+		iterations++
+		if iterations%100000000 == 0 {
+			fmt.Printf("Iterations: %dM after %s (%.2fM / sec)\n", iterations/1000000, time.Since(start), float64(iterations)/1000000/time.Since(start).Seconds())
+			fmt.Printf("    Binary key: %64b %[1]d\n", key)
+			//return
+		}
+		//rows.Set()
+	}
+	//spew.Dump(pickCount, l)
+	//spew.Dump(picked)
+	//spew.Dump(empties)
+}
+
+// Should have 28 nums (7+6+5+4+3+2+1 = 28)
+// Start with 13, need to add 15 more
+// 49 spots, 13 filled, 36 left to place 15
+// 36 pick 15 = 5,567,902,560 = 5.5B possible boards
+// without looking at additional constraints.
+
+// 3, 1, 2, 3, 2, 1, 3 = 20
 func TestItWorks(t *testing.T) {
 	b := NewBoard()
 	spew.Dump(b)
 	spew.Dump(!b.invalid())
+	b.update()
+	os.Exit(1)
 
 	b.update()
 	r := check(b)
