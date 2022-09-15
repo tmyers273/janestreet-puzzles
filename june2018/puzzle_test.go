@@ -18,10 +18,6 @@ func printBin(num int) {
 	}
 }
 
-type tuple struct {
-	row, col uint8
-}
-
 /*
  * The grid is incomplete. Place numbers in some of the empty cells below so that in total the grid contains
  * one 1, two 2’s, etc., up to seven 7’s. Furthermore, each row and column must contain exactly 4 numbers
@@ -30,16 +26,6 @@ type tuple struct {
  *
  * The answer to this puzzle is the product of the areas of the connected groups of empty squares in the completed grid.
  */
-
-var oGrid = [][]int{
-	{0, 4, 0, 0, 0, 0, 0},
-	{0, 0, 6, 3, 0, 0, 6},
-	{0, 0, 0, 0, 0, 5, 5},
-	{0, 0, 0, 4, 0, 0, 0},
-	{4, 7, 0, 0, 0, 0, 0},
-	{2, 0, 0, 7, 4, 0, 0},
-	{0, 0, 0, 0, 0, 1, 0},
-}
 
 var oGridRotatedRight = [][]int{
 	{0, 2, 4, 0, 0, 0, 0},
@@ -98,21 +84,6 @@ func loadValidKeys() ([]uint64, error) {
 	return keys, nil
 }
 
-func printGrid(grid [][]int) {
-	for i := 0; i < 7; i++ {
-		for j := 0; j < 7; j++ {
-			if grid[i][j] == 0 {
-				fmt.Printf("_ ")
-			} else if grid[i][j] == 9 {
-				fmt.Printf("* ")
-			} else {
-				fmt.Printf("%d ", grid[i][j])
-			}
-		}
-		fmt.Println()
-	}
-}
-
 func TestValidBoardsPass2(t *testing.T) {
 	keys, err := loadValidKeys()
 	if err != nil {
@@ -120,149 +91,16 @@ func TestValidBoardsPass2(t *testing.T) {
 	}
 
 	for _, key := range keys {
-		madeChanges := true
-		grid := NewBoardFromKey(key)
-		rows := NewRowRepresentation(oGrid)
-		changeCount := 0
-		//cols := NewRowRepresentation(oGrid).Transpose()
+		b := NewBoard2FromKey(key)
+		state := b.FillEasy()
 
-		for madeChanges {
-			madeChanges = false
-
-			for i := 0; i < 7; i++ {
-				//fmt.Printf("count for row i: %d is %d\n", i, rows.GetCountNumbers(i))
-				if rows.GetCountNumbers(i) == 3 {
-					sum := 20
-					missingIndex := 0
-					for j := 0; j < 7; j++ {
-						if grid[i][j] == 9 {
-							missingIndex = j
-						} else {
-							sum -= grid[i][j]
-						}
-					}
-
-					if sum > 7 {
-						fmt.Printf("INVALID 3 in row %d, so we can conclusively set (%d,%d) to %d\n", i, i, missingIndex, sum)
-						printGrid(grid)
-						fmt.Println(rows)
-						continue
-					}
-					fmt.Printf("Found 3 in row %d, so we can conclusively set (%d,%d) to %d\n", i, i, missingIndex, sum)
-
-					grid[i][missingIndex] = sum
-					rows.Set(uint8(i), uint8(missingIndex))
-					changeCount++
-					//cols = rows.Transpose()
-					madeChanges = true
-
-					//fmt.Println("After change:")
-					//printGrid(grid)
-					//fmt.Printf("rows: %s\n", rows)
-					//fmt.Println()
-					//fmt.Printf("rows: %s\n", rows)
-					//fmt.Printf("cols: %s\n", cols)
-				}
-			}
-			for i := 0; i < 7; i++ {
-				if rows.GetColCountNumbers(i) == 3 {
-					sum := 20
-					missingIndex := 0
-					for j := 0; j < 7; j++ {
-						if grid[j][i] == 9 {
-							missingIndex = j
-						} else {
-							sum -= grid[j][i]
-						}
-					}
-
-					if sum > 7 {
-						fmt.Printf("INVALID Found 3 in col %d, so we can conclusively set (%d,%d) to %d\n", i, missingIndex, i, sum)
-						printGrid(grid)
-						fmt.Println(rows)
-						continue
-					}
-					fmt.Printf("Found 3 in col %d, so we can conclusively set (%d,%d) to %d\n", i, missingIndex, i, sum)
-
-					grid[missingIndex][i] = sum
-					rows.Set(uint8(missingIndex), uint8(i))
-					changeCount++
-					//cols = rows.Transpose()
-
-					//fmt.Println("After change")
-					//printGrid(grid)
-					//fmt.Printf("rows: %s\n", rows)
-					//fmt.Println()
-					//fmt.Printf("cols: %s\n", cols)
-
-					madeChanges = true
-				}
-			}
+		if state == StateInvalid {
+			continue
 		}
-
-		fmt.Printf("Finished for key %d. Have %d nums after %d changes\n", key, rows.count, changeCount)
-		printGrid(grid)
-		fmt.Println(rows)
-		if rows.count == 28 {
-			//fmt.Printf("cols: %s\n", cols)
-			fmt.Printf("rows: %s\n", rows)
-			//fmt.Println(rows.rows[i].ToSlice())
-
-			for i := 0; i < 7; i++ {
-				for j := 0; j < 7; j++ {
-					if grid[i][j] == 0 {
-						fmt.Printf("_ ")
-					} else if grid[i][j] == 9 {
-						fmt.Printf("* ")
-					} else {
-						fmt.Printf("%d ", grid[i][j])
-					}
-				}
-				fmt.Println()
-			}
-			fmt.Print("\n\n")
-
-			return
-		}
+		fmt.Printf("Key: %d, State: %s\n", key, state)
+		printGrid(b.grid)
+		fmt.Println(b.rows)
 	}
-}
-
-func NewBoardFromKey(key uint64) [][]int {
-	empties := generateEmpties()
-
-	grid := make([][]int, 7)
-	for i := 0; i < 7; i++ {
-		grid[i] = make([]int, 7)
-	}
-	for i := 0; i < 7; i++ {
-		copy(grid[i], oGrid[i])
-	}
-	for i := 0; i < 64; i++ {
-		v := key & (1 << i)
-		if v != 0 {
-			grid[empties[i].row][empties[i].col] = 9
-		}
-	}
-
-	//fmt.Printf("Board info for key %d:\n", key)
-
-	//fmt.Printf("\n\n")
-	return grid
-}
-
-func generateEmpties() []tuple {
-	var empties []tuple
-	var i, j uint8
-
-	for i = 0; i < 7; i++ {
-		for j = 0; j < 7; j++ {
-			if oGrid[i][j] == 0 {
-				empties = append(empties, tuple{i, j})
-			}
-		}
-	}
-
-	return empties
 }
 
 func TestChannelSpeed(t *testing.T) {
