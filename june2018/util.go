@@ -16,7 +16,7 @@ var oGrid = [][]int{
 	{0, 0, 0, 0, 0, 1, 0},
 }
 
-func NewBoardFromKey(key uint64) [][]int {
+func NewGridFromKey(key uint64) [][]int {
 	empties := generateEmpties()
 
 	grid := make([][]int, 7)
@@ -51,6 +51,7 @@ func generateEmpties() []tuple {
 	return empties
 }
 
+// printGrid is a helper function, it just pretty prints the grid.
 func printGrid(grid [][]int) {
 	for i := 0; i < 7; i++ {
 		for j := 0; j < 7; j++ {

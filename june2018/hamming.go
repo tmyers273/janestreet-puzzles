@@ -26,6 +26,7 @@ func getHammingWeight(i uint8) int {
 }
 
 // Pulled from https://en.wikipedia.org/wiki/Hamming_weight
+// And inlined in FirstPass
 const m1 uint64 = 0x5555555555555555  //binary: 0101...
 const m2 uint64 = 0x3333333333333333  //binary: 00110011..
 const m4 uint64 = 0x0f0f0f0f0f0f0f0f  //binary:  4 zeros,  4 ones ...

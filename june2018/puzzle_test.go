@@ -19,16 +19,6 @@ import (
  * The answer to this puzzle is the product of the areas of the connected groups of empty squares in the completed grid.
  */
 
-var oGridRotatedRight = [][]int{
-	{0, 2, 4, 0, 0, 0, 0},
-	{0, 0, 7, 0, 0, 0, 4},
-	{0, 0, 0, 0, 0, 6, 0},
-	{0, 7, 0, 4, 0, 3, 0},
-	{0, 4, 0, 0, 0, 0, 0},
-	{1, 0, 0, 0, 5, 0, 0},
-	{0, 0, 0, 0, 5, 6, 0},
-}
-
 func loadValidKeys() ([]uint64, error) {
 	rawKeys, err := os.ReadFile("valid_keys.txt")
 	if err != nil {
@@ -51,10 +41,10 @@ func TestValidBoardsPass2(t *testing.T) {
 	}
 
 	valid := true
-	var cp Board2
+	var cp Board
 
 	for _, key := range keys {
-		b := NewBoard2FromKey(key)
+		b := NewBoardFromKey(key)
 		state := b.FillEasy()
 
 		if state == StateInvalid {
@@ -161,10 +151,12 @@ func TestGetBoards(t *testing.T) {
 	}
 	var hammingWeight uint64
 	var x uint64
+
 	for {
 		copy(rows.rows, orig.rows)
 		rows.count = orig.count
 
+		// Find the next key where hammingWeight = 1
 		hammingWeight = 0
 		for hammingWeight != 15 {
 			key++

@@ -7,7 +7,7 @@ type State int
 const (
 	StateValid = iota + 1
 	StateInvalid
-	StateUnknown
+	StateIndeterminate
 )
 
 func (s State) String() string {
@@ -16,7 +16,7 @@ func (s State) String() string {
 		return "Valid"
 	case StateInvalid:
 		return "Invalid"
-	case StateUnknown:
+	case StateIndeterminate:
 		return "Unknown"
 	default:
 		panic("Unknown state: " + strconv.Itoa(int(s)))

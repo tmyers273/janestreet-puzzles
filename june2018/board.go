@@ -1,7 +1,7 @@
 package june2018
 
-func NewBoard2FromKey(key uint64) Board2 {
-	grid := NewBoardFromKey(key)
+func NewBoardFromKey(key uint64) Board {
+	grid := NewGridFromKey(key)
 	rows := NewRowRepresentation(oGrid)
 
 	counts := make([]int, 8)
@@ -13,20 +13,20 @@ func NewBoard2FromKey(key uint64) Board2 {
 		}
 	}
 
-	return Board2{
+	return Board{
 		grid:   grid,
 		rows:   rows,
 		counts: counts,
 	}
 }
 
-type Board2 struct {
+type Board struct {
 	grid   [][]int
 	rows   RowCollection
 	counts []int
 }
 
-func (b *Board2) Clone() Board2 {
+func (b *Board) Clone() Board {
 	newGrid := make([][]int, 7)
 	for i := 0; i < 7; i++ {
 		newGrid[i] = make([]int, 7)
@@ -42,14 +42,26 @@ func (b *Board2) Clone() Board2 {
 	newCounts := make([]int, 8)
 	copy(newCounts, b.counts)
 
-	return Board2{
+	return Board{
 		grid:   newGrid,
 		rows:   newRows,
 		counts: newCounts,
 	}
 }
 
-func (b *Board2) FillEasy() State {
+// FillEasy fills in the "easy" numbers, or in other words
+// the numbers where we have 3 other numbers in the row or
+// column.
+//
+// Returns StateInvalid if either:
+//   - a row or column with 3 values cannot be summed to 20
+//     with a value <=7
+//   - the value would violate the count check
+//
+// Otherwise returns StateValid if we got lucky and solved
+// it or StateIndeterminate if we can't determine positive
+// or negative validity.
+func (b *Board) FillEasy() State {
 	madeChanges := true
 	changeCount := 0
 
@@ -115,12 +127,13 @@ func (b *Board2) FillEasy() State {
 		}
 	}
 
-	// Finally, if we have all 28 numbers, then the board is valid
+	// Finally, if we got lucky and have all
+	// 28 numbers, then the board is valid
 	if b.rows.count == 28 {
 		return StateValid
 	}
 
-	return StateUnknown
+	return StateIndeterminate
 }
 
 // set is a helper function. It sets the underlying grid's
@@ -128,7 +141,7 @@ func (b *Board2) FillEasy() State {
 // the counts for the set value.
 //
 // Returns false if the new value causes the count check to fail.
-func (b *Board2) set(row, col, value int) bool {
+func (b *Board) set(row, col, value int) bool {
 	b.grid[row][col] = value
 	b.rows.Set(uint8(row), uint8(col))
 	b.counts[value]++
@@ -136,7 +149,7 @@ func (b *Board2) set(row, col, value int) bool {
 	return b.counts[value] <= value
 }
 
-func (b *Board2) passesSumChecks() bool {
+func (b *Board) passesSumChecks() bool {
 	for i := 0; i < 7; i++ {
 		if !b.passesRowSum(i) || !b.passesColSum(i) {
 			return false
@@ -146,11 +159,11 @@ func (b *Board2) passesSumChecks() bool {
 	return true
 }
 
-func (b *Board2) passesSumCheck(i, j int) bool {
+func (b *Board) passesSumCheck(i, j int) bool {
 	return b.passesRowSum(i) && b.passesColSum(j)
 }
 
-func (b *Board2) passesRowSum(i int) bool {
+func (b *Board) passesRowSum(i int) bool {
 	sum := 0
 	for j := 0; j < 7; j++ {
 		sum += b.grid[i][j]
@@ -159,7 +172,7 @@ func (b *Board2) passesRowSum(i int) bool {
 	return sum == 20
 }
 
-func (b *Board2) passesColSum(i int) bool {
+func (b *Board) passesColSum(i int) bool {
 	sum := 0
 	for j := 0; j < 7; j++ {
 		sum += b.grid[j][i]
