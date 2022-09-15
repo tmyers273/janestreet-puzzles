@@ -60,11 +60,22 @@ func (r RowCollection) GetColCountNumbers(i int) int {
 	return count
 }
 
+func gt(a, b uint8) uint8 {
+	if a > b {
+		return 1
+	}
+
+	return 0
+}
+
 func (r RowCollection) Passes4Check() bool {
-	for i := 0; i < len(r.rows); i++ {
-		if hamming[r.rows[i]] > 4 {
-			return false
-		}
+	if hamming[r.rows[0]] > 4 ||
+		hamming[r.rows[1]] > 4 ||
+		hamming[r.rows[2]] > 4 ||
+		hamming[r.rows[3]] > 4 ||
+		hamming[r.rows[4]] > 4 ||
+		hamming[r.rows[5]] > 4 {
+		return false
 	}
 
 	return true
@@ -158,7 +169,8 @@ func (r *RowCollection) Set(i uint8, j uint8) {
 
 func (r *RowCollection) SetV(i uint8, j uint8, v int8) {
 	r.rows[i] |= Row(v) << (6 - j)
-	r.count += eq(v, 1)
+	//r.count += eq(v, 1) // Removing the count gets us ~28M / sec,
+	// but the wrong answer (242 valid boards with panic) 242 without... no change
 }
 
 func (r RowCollection) Transpose() RowCollection {

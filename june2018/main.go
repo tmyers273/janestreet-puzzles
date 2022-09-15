@@ -41,13 +41,17 @@ func main() {
 // to iteratively generate the next combination, as the numbers are too large to do
 // recursively without stack overflows.
 //
-// This was accomplished by taking a counter, and incrementing it by 1. Then taking the
+// This was originally approached by taking a counter, and incrementing it by 1. Then taking the
 // Hamming weight of that number and checking to see if it equals 15. If it does, then
 // that is a valid "key" for the board. The lower 36 bits correspond to which of the 36
 // cells should be filled. The loop exits when the counter reaches 1<<36.
 //
 // So for example, if we had a smaller board that had a key of 0b00100010 we would
 // interpret that as setting the 2nd and 6th empty slots on the board.
+//
+// However, the bit twiddling below is ~2x as fast in benchmarks, so the Hamming weight
+// based approach was scraped.
+// https://graphics.stanford.edu/~seander/bithacks.html#NextBitPermutation
 //
 // These get plugged in, then we check if the board structure is valid. Board structure is
 // just checking for 2x2 correctness, 4 per row/col correctness, and continuity correctness.
@@ -63,7 +67,8 @@ func getValidBoardStructures() []uint64 {
 	var iterations int
 	start := time.Now()
 
-	var key uint64 = 0
+	//var key uint64 = 0
+	var key uint64 = 1<<15 - 1
 	//var key uint64 = 7669990665
 	var rows RowCollection
 	validCount := 0
@@ -73,25 +78,18 @@ func getValidBoardStructures() []uint64 {
 	for i := 0; i < 7; i++ {
 		grid[i] = make([]int, 7)
 	}
-	var hammingWeight uint64
 	var x uint64
 
 	for {
 		copy(rows.rows, orig.rows)
 		rows.count = orig.count
 
-		// Find the next key where hammingWeight = 1
-		hammingWeight = 0
-		for hammingWeight != 15 {
-			key++
-
-			// This is the getHammingWeight64Fast function, but inlined
-			x = key
-			x -= (x >> 1) & m1              //put count of each 2 bits into those 2 bits
-			x = (x & m2) + ((x >> 2) & m2)  //put count of each 4 bits into those 4 bits
-			x = (x + (x >> 4)) & m4         //put count of each 8 bits into those 8 bits
-			hammingWeight = (x * h01) >> 56 //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ...
-		}
+		// Find the lexicographically next combination that has 15 bits
+		// ie 0 01111111 11111111
+		// -> 0 10111111 11111111
+		// -> 0 11011111 11111111
+		x = (key | (key - 1)) + 1
+		key = x | ((((x & -x) / (key & -key)) >> 1) - 1)
 		if key > 1<<36 {
 			return keys
 		}
@@ -144,12 +142,13 @@ func getValidBoardStructures() []uint64 {
 		rows.SetV(empties[33].row, empties[33].col, neq(key&(1<<33), 0))
 		rows.SetV(empties[34].row, empties[34].col, neq(key&(1<<34), 0))
 		rows.SetV(empties[35].row, empties[35].col, neq(key&(1<<35), 0))
+		rows.count += 15
 
 		// The order of checks is important for performance. We have the fastest
 		// checks first, and the slowest checks last. Approx runtimes:
 		//   - Passes2x2: 3ns/op
-		//   - Passes4Check: 6ns/op
-		//   - Transpose + Passes4Check: 27+6ns/op = 33ns/op
+		//   - Passes4Check: 4ns/op
+		//   - Transpose + Passes4Check: 27+4ns/op = 31ns/op
 		//   - PassesContinuity: 154ns/op + copy time
 		if rows.Passes2x2() && rows.Passes4Check() && rows.Transpose().Passes4Check() {
 			for i := 0; i < 7; i++ {
@@ -173,6 +172,7 @@ func getValidBoardStructures() []uint64 {
 		if iterations%100000000 == 0 {
 			fmt.Printf("Iterations: %dM after %s (%.2fM / sec)\n", iterations/1000000, time.Since(start), float64(iterations)/1000000/time.Since(start).Seconds())
 			fmt.Printf("    Binary key: %64b %[1]d\n", key)
+			return nil // @todo just for dev / bench
 		}
 	}
 }
