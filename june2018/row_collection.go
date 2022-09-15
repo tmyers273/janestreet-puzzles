@@ -156,6 +156,18 @@ func (r *RowCollection) Set(i uint8, j uint8) {
 	r.count++
 }
 
+func eq(a, b int8) int {
+	if a == b {
+		return 1
+	}
+	return 0
+}
+
+func (r *RowCollection) SetV(i uint8, j uint8, v int8) {
+	r.rows[i] |= Row(v) << (6 - j)
+	r.count += eq(v, 1)
+}
+
 func (r RowCollection) Transpose() RowCollection {
 	res := RowCollection{
 		count: r.count,
