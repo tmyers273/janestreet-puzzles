@@ -65,3 +65,22 @@ func printGrid(grid [][]int) {
 		fmt.Println()
 	}
 }
+
+// neq is a branchless version of a!=b. Go cannot natively cast
+// a bool to an int val, but the compiler is smart enough to.
+func neq(a, b uint64) int8 {
+	if a != b {
+		return 1
+	}
+
+	return 0
+}
+
+// eq is a branchless version of a==b. Go cannot natively cast
+// a bool to an int val, but the compiler is smart enough to.
+func eq(a, b int8) int {
+	if a == b {
+		return 1
+	}
+	return 0
+}

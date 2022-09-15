@@ -32,18 +32,3 @@ func TestRowCollection_Transpose(t *testing.T) {
 		})
 	}
 }
-
-// 26.52 ns/op
-func BenchmarkRowCollection_Transpose(b *testing.B) {
-	r := NewRowRepresentation(oGrid)
-
-	var res RowCollection
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		res = r.Transpose()
-	}
-	b.StopTimer()
-
-	expected := NewRowRepresentation(oGridRotatedRight)
-	assert.Equal(b, expected, res)
-}

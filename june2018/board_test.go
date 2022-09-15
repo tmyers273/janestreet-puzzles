@@ -43,30 +43,6 @@ var contiguous1 = [][]int{
 	{0, 0, 0, 0, 0, 1, 0},
 }
 
-// 2585 ns / op
-// 2014 ns/op
-// 154 ns/op
-func BenchmarkPassesContinuity(b *testing.B) {
-	rows1 := NewRowRepresentation(oGrid)
-	rows2 := NewRowRepresentation(contiguous1)
-
-	for i := 0; i < b.N; i++ {
-		rows1.PassesContinuity(oGrid)
-		rows2.PassesContinuity(contiguous1)
-	}
-}
-
-// 6.043 ns/op
-func BenchmarkPasses4Check(b *testing.B) {
-	rows1 := NewRowRepresentation(oGrid)
-	rows2 := NewRowRepresentation(contiguous1)
-
-	for i := 0; i < b.N; i++ {
-		rows1.Passes4Check()
-		rows2.Passes4Check()
-	}
-}
-
 func TestPassesContinuity(t *testing.T) {
 	scenarios := []struct {
 		Name     string
@@ -96,18 +72,6 @@ func TestPassesContinuity(t *testing.T) {
 			assert.Equal(t, scenario.Expected, r)
 		})
 	}
-}
-
-// 2.921 ns/op
-func BenchmarkPasses2x2(b *testing.B) {
-	oGrid[5][1] = 1
-	rows := NewRowRepresentation(oGrid)
-
-	var r bool
-	for i := 0; i < b.N; i++ {
-		r = rows.Passes2x2()
-	}
-	assert.Equal(b, false, r)
 }
 
 func TestRow(t *testing.T) {

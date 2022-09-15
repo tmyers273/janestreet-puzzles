@@ -3,7 +3,6 @@ package june2018
 import (
 	"errors"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"os"
 	"strconv"
 	"strings"
@@ -28,34 +27,6 @@ var oGridRotatedRight = [][]int{
 	{0, 4, 0, 0, 0, 0, 0},
 	{1, 0, 0, 0, 5, 0, 0},
 	{0, 0, 0, 0, 5, 6, 0},
-}
-
-var grid = [][]int{
-	// One row and col "border" of 0s
-	{0, 0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 0, 4, 0, 0, 0, 0, 0, 0},
-	{0, 0, 0, 6, 3, 0, 0, 6, 0},
-	{0, 0, 0, 0, 0, 0, 5, 5, 0},
-	{0, 0, 0, 0, 4, 0, 0, 0, 0},
-	{0, 4, 7, 0, 0, 0, 0, 0, 0},
-	{0, 2, 0, 0, 7, 4, 0, 0, 0},
-	{0, 0, 0, 0, 0, 0, 1, 0, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0, 0},
-}
-
-func NewBoard() Board {
-	b := Board{
-		grid:        oGrid,
-		rowCount:    make([]int, 7),
-		colCount:    make([]int, 7),
-		digitCounts: make([]int, 7+1),
-		rowSum:      make([]int, 7),
-		colSum:      make([]int, 7),
-	}
-
-	b.update()
-
-	return b
 }
 
 func loadValidKeys() ([]uint64, error) {
@@ -160,42 +131,6 @@ func TestValidBoardsPass2(t *testing.T) {
 	return
 }
 
-// ~15M / sec
-func BenchmarkHammingSpeed(b *testing.B) {
-	var key uint64
-	var hammingWeight uint64
-
-	start := time.Now()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for hammingWeight != 15 {
-			key++
-
-			var x uint64
-			x = key
-			x -= (x >> 1) & m1              //put count of each 2 bits into those 2 bits
-			x = (x & m2) + ((x >> 2) & m2)  //put count of each 4 bits into those 4 bits
-			x = (x + (x >> 4)) & m4         //put count of each 8 bits into those 8 bits
-			hammingWeight = (x * h01) >> 56 //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ...
-			//hammingWeight = getHammingWeight64Fast(key)
-		}
-	}
-	b.StopTimer()
-	dur := time.Since(start)
-
-	fmt.Printf("Took %s (%.2fM / sec)\n", dur, float64(b.N)/1000000/dur.Seconds())
-}
-
-// neq is a branchless version of a!=b. Go cannot natively cast
-// a bool to an int val, but the compiler is smart enough to.
-func neq(a, b uint64) int8 {
-	if a != b {
-		return 1
-	}
-
-	return 0
-}
-
 // TestGetBoards generates a list of valid board keys. We need a way to generate a list
 // of potential places to put the 15 unused numbers. This is done by looping through and
 // iterating a counter. The Hamming weight of the iterator is used and when it reaches
@@ -292,22 +227,26 @@ func TestGetBoards(t *testing.T) {
 		rows.SetV(empties[34].row, empties[34].col, neq(key&(1<<34), 0))
 		rows.SetV(empties[35].row, empties[35].col, neq(key&(1<<35), 0))
 
-		if rows.Passes2x2() && rows.Passes4Check() {
-			if rows.Transpose().Passes4Check() {
-				for i := 0; i < 7; i++ {
-					copy(grid[i], oGrid[i])
+		// The order of checks is important for performance. We have the fastest
+		// checks first, and the slowest checks last. Approx runtimes:
+		//   - Passes2x2: 3ns/op
+		//   - Passes4Check: 6ns/op
+		//   - Transpose + Passes4Check: 27+6ns/op = 33ns/op
+		//   - PassesContinuity: 154ns/op + copy time
+		if rows.Passes2x2() && rows.Passes4Check() && rows.Transpose().Passes4Check() {
+			for i := 0; i < 7; i++ {
+				copy(grid[i], oGrid[i])
+			}
+			for i := 0; i < 64; i++ {
+				v := key & (1 << i)
+				if v != 0 {
+					grid[empties[i].row][empties[i].col] = 9
 				}
-				for i := 0; i < 64; i++ {
-					v := key & (1 << i)
-					if v != 0 {
-						grid[empties[i].row][empties[i].col] = 9
-					}
-				}
+			}
 
-				if rows.PassesContinuity(grid) {
-					fmt.Printf("********** Found another valid board! key = %d, cnt = %d\n", key, validCount)
-					validCount++
-				}
+			if rows.PassesContinuity(grid) {
+				fmt.Printf("********** Found another valid board! key = %d, cnt = %d\n", key, validCount)
+				validCount++
 			}
 		}
 
@@ -326,42 +265,3 @@ func TestGetBoards(t *testing.T) {
 // without looking at additional constraints.
 
 // 3, 1, 2, 3, 2, 1, 3 = 20
-func TestItWorks(t *testing.T) {
-	b := NewBoard()
-	spew.Dump(b)
-	spew.Dump(!b.invalid())
-	b.update()
-	os.Exit(1)
-
-	b.update()
-	r := check(b)
-	spew.Dump(r, b)
-}
-
-func check(b Board) bool {
-	if b.invalid() {
-		//fmt.Printf("board is invalid\n")
-		return false
-	}
-
-	for i := 1; i < 8; i++ {
-		for j := 1; j < 8; j++ {
-			if b.grid[i][j] != 0 {
-				continue
-			}
-
-			for k := 0; k < 7; k++ {
-				ok := b.Set(i, j, k+1)
-				if !ok {
-					b.grid[i][j] = 0
-					continue
-				}
-
-				if check(b) {
-				}
-			}
-		}
-	}
-
-	return !b.invalid()
-}
