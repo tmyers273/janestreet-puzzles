@@ -11,14 +11,6 @@ import (
 	"time"
 )
 
-func printBin(num int) {
-	fmt.Printf("%049b\n", num)
-	s := fmt.Sprintf("%049b\n", num)
-	for i := 0; i < 49; i += 7 {
-		fmt.Printf("%d: %s\n", i/7, s[i:i+7])
-	}
-}
-
 /*
  * The grid is incomplete. Place numbers in some of the empty cells below so that in total the grid contains
  * one 1, two 2’s, etc., up to seven 7’s. Furthermore, each row and column must contain exactly 4 numbers
@@ -66,10 +58,6 @@ func NewBoard() Board {
 	return b
 }
 
-var rowCount = []int{1, 3, 2, 1, 2, 3, 1}
-var colCount = []int{2, 2, 1, 3, 1, 2, 2}
-var digitCounts = []int{0, 1, 1, 1, 4, 2, 2, 2}
-
 func loadValidKeys() ([]uint64, error) {
 	rawKeys, err := os.ReadFile("valid_keys.txt")
 	if err != nil {
@@ -103,6 +91,7 @@ func TestValidBoardsPass2(t *testing.T) {
 		}
 		fmt.Printf("Key: %d, State: %s passed initial screening\n", key, state)
 
+		// Generate a list of the remaining numbers and their positions
 		var remaining []int
 		for i := 1; i <= 7; i++ {
 			for j := 0; j < i-b.counts[i]; j++ {
@@ -120,8 +109,9 @@ func TestValidBoardsPass2(t *testing.T) {
 			}
 		}
 
-		cp = b.Clone()
-		permuatations := 0
+		permutations := 0
+		// Then generate all the possible permutations for those 10 numbers.
+		// Step through each permutation and see if it's valid.
 		quickPerm(remaining, func(nums []int) error {
 			cp = b.Clone()
 			valid = true
@@ -139,7 +129,7 @@ func TestValidBoardsPass2(t *testing.T) {
 				return errors.New("done")
 			}
 
-			permuatations++
+			permutations++
 			return nil
 		})
 
@@ -170,25 +160,6 @@ func TestValidBoardsPass2(t *testing.T) {
 	return
 }
 
-func TestChannelSpeed(t *testing.T) {
-	var count uint64 = 100000000
-	ch := make(chan uint64, 100)
-	go func() {
-		var i uint64
-		for i = 0; i < count; i++ {
-			ch <- i
-		}
-		close(ch)
-	}()
-
-	start := time.Now()
-	for _ = range ch {
-		//
-	}
-	dur := time.Since(start)
-	fmt.Printf("Took %s (%.2fM / sec)\n", dur, float64(count)/1000000/dur.Seconds())
-}
-
 // ~15M / sec
 func BenchmarkHammingSpeed(b *testing.B) {
 	var key uint64
@@ -215,29 +186,6 @@ func BenchmarkHammingSpeed(b *testing.B) {
 	fmt.Printf("Took %s (%.2fM / sec)\n", dur, float64(b.N)/1000000/dur.Seconds())
 }
 
-func TestHammingSpeed(t *testing.T) {
-
-}
-
-func TestLoopSpeed(t *testing.T) {
-	var count uint64 = 100000000
-	ch := make(chan uint64, 100)
-	go func() {
-		var i uint64
-		for i = 0; i < count; i++ {
-			ch <- i
-		}
-		close(ch)
-	}()
-
-	start := time.Now()
-	for _ = range ch {
-		//
-	}
-	dur := time.Since(start)
-	fmt.Printf("Took %s (%.2fM / sec)\n", dur, float64(count)/1000000/dur.Seconds())
-}
-
 // neq is a branchless version of a!=b. Go cannot natively cast
 // a bool to an int val, but the compiler is smart enough to.
 func neq(a, b uint64) int8 {
@@ -257,7 +205,7 @@ func neq(a, b uint64) int8 {
 // and continuity correctness.
 //
 // Once we have generated a list of valid keys, we need to do a second pass to generate
-// The actual numbers in the correct locations. Still a todo.
+// The actual numbers in the correct locations.
 //
 // ~14M checks / sec with a ~6min runtime
 func TestGetBoards(t *testing.T) {
@@ -295,8 +243,8 @@ func TestGetBoards(t *testing.T) {
 			//hammingWeight = getHammingWeight64Fast(key)
 		}
 
-		// This looks gross, but is quite simple. It is an unrolled loop,
-		// performing the following:
+		// This looks gross, but is quite simple. It is just an
+		// unrolled loop performing the following:
 		//
 		// for i:=0;i <36; i++ {
 		// 	 v := key & (1 << i)
@@ -344,19 +292,6 @@ func TestGetBoards(t *testing.T) {
 		rows.SetV(empties[34].row, empties[34].col, neq(key&(1<<34), 0))
 		rows.SetV(empties[35].row, empties[35].col, neq(key&(1<<35), 0))
 
-		//for i := 0; i < 36; i++ {
-		//	rows.SetV(empties[i].row, empties[i].col, neq(key&(1<<i), 0))
-		//	//if key&(1<<i) != 0 {
-		//	//	rows.Set(empties[i].row, empties[i].col)
-		//	//}
-		//}
-
-		//for i:=0;i<64;i++ {
-		//	if key&(1<<i) != 0 {
-		//		rows.Set(empties[i].row, empties[i].col)
-		//	}
-		//}
-
 		if rows.Passes2x2() && rows.Passes4Check() {
 			if rows.Transpose().Passes4Check() {
 				for i := 0; i < 7; i++ {
@@ -369,15 +304,9 @@ func TestGetBoards(t *testing.T) {
 					}
 				}
 
-				//fmt.Println("maybe")
-				//printGrid(grid)
-				//fmt.Println()
-
 				if rows.PassesContinuity(grid) {
 					fmt.Printf("********** Found another valid board! key = %d, cnt = %d\n", key, validCount)
 					validCount++
-
-					//return
 				}
 			}
 		}
@@ -386,13 +315,8 @@ func TestGetBoards(t *testing.T) {
 		if iterations%100000000 == 0 {
 			fmt.Printf("Iterations: %dM after %s (%.2fM / sec)\n", iterations/1000000, time.Since(start), float64(iterations)/1000000/time.Since(start).Seconds())
 			fmt.Printf("    Binary key: %64b %[1]d\n", key)
-			//return
 		}
-		//rows.Set()
 	}
-	//spew.Dump(pickCount, l)
-	//spew.Dump(picked)
-	//spew.Dump(empties)
 }
 
 // Should have 28 nums (7+6+5+4+3+2+1 = 28)
@@ -412,29 +336,6 @@ func TestItWorks(t *testing.T) {
 	b.update()
 	r := check(b)
 	spew.Dump(r, b)
-	//i := 0
-	//j := 0
-	//for k := 0; k < 7; k++ {
-	//	b.grid[i][j] = k + 1
-	//	b.update()
-	//	fmt.Printf("invalid after setting %d,%d to %d? %t\n", i, j, k+1, b.invalid())
-	//}
-	//
-	//i = 0
-	//j = 1
-	//for k := 0; k < 7; k++ {
-	//	b.grid[i][j] = k + 1
-	//	b.update()
-	//	fmt.Printf("invalid after setting %d,%d to %d? %t\n", i, j, k+1, b.invalid())
-	//}
-	//
-	//i = 1
-	//j = 1
-	//for k := 0; k < 7; k++ {
-	//	b.grid[i][j] = k + 1
-	//	b.update()
-	//	fmt.Printf("invalid after setting %d,%d to %d? %t\n", i, j, k+1, b.invalid())
-	//}
 }
 
 func check(b Board) bool {
@@ -449,29 +350,16 @@ func check(b Board) bool {
 				continue
 			}
 
-			//hasValid := false
 			for k := 0; k < 7; k++ {
-				//fmt.Printf("setting %d,%d to %d\n", i, j, k+1)
 				ok := b.Set(i, j, k+1)
 				if !ok {
 					b.grid[i][j] = 0
 					continue
 				}
 
-				//b.grid[i][j] = k + 1
-				//b.update()
-
 				if check(b) {
-					//fmt.Println("found a potential valid")
-					//fmt.Println()
-					//hasValid = true
 				}
 			}
-			//if !hasValid {
-			//	//fmt.Printf("no valid combinations for %d,%d - setting to 0\n", i, j)
-			//	b.grid[i][j] = 0
-			//	b.update()
-			//}
 		}
 	}
 
