@@ -1,4 +1,4 @@
-package june2018
+package main
 
 import (
 	"github.com/stretchr/testify/assert"

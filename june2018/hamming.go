@@ -1,4 +1,4 @@
-package june2018
+package main
 
 // hamming is a lookup table of the first 127 hamming weights.
 // Hamming weights are the number of bits set to 1 in a given number.

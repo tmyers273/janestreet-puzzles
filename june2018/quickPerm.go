@@ -1,4 +1,4 @@
-package june2018
+package main
 
 // quickPerm is ported from https://www.quickperm.org/
 func quickPerm(in []int, callback func([]int) error) {

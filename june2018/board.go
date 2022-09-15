@@ -1,4 +1,4 @@
-package june2018
+package main
 
 func NewBoardFromKey(key uint64) Board {
 	grid := NewGridFromKey(key)

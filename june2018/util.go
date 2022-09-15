@@ -1,6 +1,11 @@
-package june2018
+package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+)
 
 type tuple struct {
 	row, col uint8
@@ -84,4 +89,19 @@ func eq(a, b int8) int {
 		return 1
 	}
 	return 0
+}
+
+func loadValidKeys() ([]uint64, error) {
+	rawKeys, err := os.ReadFile("june2018/valid_keys.txt")
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(rawKeys)), "\n")
+	keys := make([]uint64, len(lines))
+	for i, line := range lines {
+		keys[i], _ = strconv.ParseUint(line, 10, 64)
+	}
+
+	return keys, nil
 }
