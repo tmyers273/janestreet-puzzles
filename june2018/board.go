@@ -34,10 +34,9 @@ func (b *Board) Clone() Board {
 	}
 
 	newRows := RowCollection{
-		rows: make([]Row, 7),
+		rows:  b.rows.rows,
+		count: b.rows.count,
 	}
-	copy(newRows.rows, b.rows.rows)
-	newRows.count = b.rows.count
 
 	newCounts := make([]int, 8)
 	copy(newCounts, b.counts)

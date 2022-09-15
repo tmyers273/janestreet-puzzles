@@ -1,9 +1,36 @@
 package main
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
+
+func TestNewRowRepresentation(t *testing.T) {
+	scenarios := []struct {
+		Name     string
+		Input    [][]int
+		Expected RowCollection
+	}{
+		{
+			Name:  "",
+			Input: oGrid,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			// 1. Given
+
+			// 2. Do this
+			r := NewRowRepresentation(scenario.Input)
+
+			fmt.Println(r)
+
+			// 3. Expect
+		})
+	}
+}
 
 func TestRowCollection_Transpose(t *testing.T) {
 	scenarios := []struct {
@@ -28,6 +55,9 @@ func TestRowCollection_Transpose(t *testing.T) {
 
 			// 3. Expect
 			expected := NewRowRepresentation(scenario.Expected)
+			fmt.Println(orig)
+			fmt.Println(r)
+			fmt.Println(expected)
 			assert.Equal(t, expected, r)
 		})
 	}

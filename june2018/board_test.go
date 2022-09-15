@@ -6,6 +6,68 @@ import (
 	"testing"
 )
 
+func TestRowCollection_Passes4Check(t *testing.T) {
+	scenarios := []struct {
+		Name     string
+		Input    [][]int
+		Expected bool
+	}{
+		{
+			Name: "line 0",
+			Input: [][]int{
+				{0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0},
+				{1, 1, 1, 1, 1, 1, 1},
+			},
+			Expected: false,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			// 1. Given
+			rows := NewRowRepresentation(scenario.Input)
+
+			// 2. Do this
+			r := rows.Passes4Check()
+
+			// 3. Expect
+			assert.Equal(t, scenario.Expected, r)
+		})
+	}
+}
+
+func TestRowCollection_Set(t *testing.T) {
+	scenarios := []struct {
+		Name string
+		Row  uint8
+		Col  uint8
+	}{
+		{
+			Name: "it works",
+			Row:  0,
+			Col:  0,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			// 1. Given
+			r := NewRowRepresentation(oGrid)
+
+			// 2. Do this
+			r.Set(scenario.Row, scenario.Col)
+
+			// 3. Expect
+			fmt.Println(r)
+		})
+	}
+}
+
 func TestRowRepresentation(t *testing.T) {
 	// 1. Given
 	rows := NewRowRepresentation(oGrid)
@@ -20,6 +82,7 @@ func TestRowRepresentation(t *testing.T) {
 	r = rows.Passes2x2()
 
 	// 3. Expect it to fail
+	fmt.Println(rows)
 	assert.Equal(t, false, r)
 
 	// 2. Set a number so that it fails the 2x2 test in another location

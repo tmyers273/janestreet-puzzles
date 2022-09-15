@@ -9,21 +9,26 @@ import (
 type Row byte
 type Col byte
 
-func NewRowRepresentation(grid [][]int) RowCollection {
-	out := make([]Row, len(grid))
-	count := 0
-	for i := 0; i < len(grid); i++ {
-		out[i] = NewRow(grid[i])
+var mask uint8 = 1<<7 - 1
 
+func NewRowRepresentation(grid [][]int) RowCollection {
+	var row uint64
+	count := 0
+	//printGrid(grid)
+	for i := uint64(0); i < uint64(len(grid)); i++ {
+		var r uint64
 		for j := 0; j < 7; j++ {
 			if grid[i][j] != 0 {
+				r |= 1 << (6 - j)
 				count++
 			}
 		}
+		//fmt.Printf("row = %d %07b\n", i, r)
+		row |= r << (7 * (6 - i))
 	}
 
 	return RowCollection{
-		rows:  out,
+		rows:  row,
 		count: count,
 	}
 }
@@ -40,19 +45,19 @@ func NewRow(row []int) Row {
 }
 
 type RowCollection struct {
-	rows  []Row
+	rows  uint64
 	count int
 }
 
 func (r RowCollection) GetCountNumbers(i int) int {
-	return hamming[r.rows[i]]
+	return hamming[uint8(r.rows>>(7*(6-i)))&mask]
 }
 
 func (r RowCollection) GetColCountNumbers(i int) int {
 	count := 0
 
 	for j := 0; j < 7; j++ {
-		if r.rows[j]&(1<<(6-i)) != 0 {
+		if r.rows>>(7*(6-j))&(1<<(6-i)) != 0 {
 			count++
 		}
 	}
@@ -69,12 +74,13 @@ func gt(a, b uint8) uint8 {
 }
 
 func (r RowCollection) Passes4Check() bool {
-	if hamming[r.rows[0]] > 4 ||
-		hamming[r.rows[1]] > 4 ||
-		hamming[r.rows[2]] > 4 ||
-		hamming[r.rows[3]] > 4 ||
-		hamming[r.rows[4]] > 4 ||
-		hamming[r.rows[5]] > 4 {
+	if hamming[uint8(r.rows>>(7*(6-0)))&mask] > 4 ||
+		hamming[uint8(r.rows>>(7*(6-1)))&mask] > 4 ||
+		hamming[uint8(r.rows>>(7*(6-2)))&mask] > 4 ||
+		hamming[uint8(r.rows>>(7*(6-3)))&mask] > 4 ||
+		hamming[uint8(r.rows>>(7*(6-4)))&mask] > 4 ||
+		hamming[uint8(r.rows>>(7*(6-5)))&mask] > 4 ||
+		hamming[uint8(r.rows>>(7*(6-6)))&mask] > 4 {
 		return false
 	}
 
@@ -88,12 +94,12 @@ func (r RowCollection) Passes2x2() bool {
 	var sum uint8
 	rows := r.rows
 
-	sum += (uint8(rows[0]) & uint8(rows[1])) & ((uint8(rows[0]) & uint8(rows[1])) >> 1)
-	sum += (uint8(rows[1]) & uint8(rows[2])) & ((uint8(rows[1]) & uint8(rows[2])) >> 1)
-	sum += (uint8(rows[2]) & uint8(rows[3])) & ((uint8(rows[2]) & uint8(rows[3])) >> 1)
-	sum += (uint8(rows[3]) & uint8(rows[4])) & ((uint8(rows[3]) & uint8(rows[4])) >> 1)
-	sum += (uint8(rows[4]) & uint8(rows[5])) & ((uint8(rows[4]) & uint8(rows[5])) >> 1)
-	sum += (uint8(rows[5]) & uint8(rows[6])) & ((uint8(rows[5]) & uint8(rows[6])) >> 1)
+	sum += (uint8(rows>>(7*(6-0))) & mask & uint8(rows>>(7*(6-1)))) & mask & ((uint8(rows>>(7*(6-0))) & mask & uint8(rows>>(7*(6-1)))) & mask >> 1)
+	sum += (uint8(rows>>(7*(6-1))) & mask & uint8(rows>>(7*(6-2)))) & mask & ((uint8(rows>>(7*(6-1))) & mask & uint8(rows>>(7*(6-2)))) & mask >> 1)
+	sum += (uint8(rows>>(7*(6-2))) & mask & uint8(rows>>(7*(6-3)))) & mask & ((uint8(rows>>(7*(6-2))) & mask & uint8(rows>>(7*(6-3)))) & mask >> 1)
+	sum += (uint8(rows>>(7*(6-3))) & mask & uint8(rows>>(7*(6-4)))) & mask & ((uint8(rows>>(7*(6-3))) & mask & uint8(rows>>(7*(6-4)))) & mask >> 1)
+	sum += (uint8(rows>>(7*(6-4))) & mask & uint8(rows>>(7*(6-5)))) & mask & ((uint8(rows>>(7*(6-4))) & mask & uint8(rows>>(7*(6-5)))) & mask >> 1)
+	sum += (uint8(rows>>(7*(6-5))) & mask & uint8(rows>>(7*(6-6)))) & mask & ((uint8(rows>>(7*(6-5))) & mask & uint8(rows>>(7*(6-6)))) & mask >> 1)
 
 	return sum == 0
 }
@@ -132,14 +138,15 @@ func (r RowCollection) PassesContinuity(grid [][]int) bool {
 func (r RowCollection) String() string {
 	out := "\n"
 	out += "   0123456\n"
-	for i := 0; i < len(r.rows); i++ {
-		out += fmt.Sprintf("%d: %s (%d)\n", i, r.rows[i], hamming[r.rows[i]])
+	for i := 0; i < 7; i++ {
+		v := uint8(r.rows>>(7*(6-i))) & mask
+		out += fmt.Sprintf("%d: %07b (%d)\n", i, v, hamming[v])
 	}
 	out += "   "
 	sum := 0
 	for i := 0; i < 7; i++ {
 		sum += r.GetCountNumbers(i)
-		out += fmt.Sprintf("%d", r.GetColCountNumbers(i))
+		out += fmt.Sprintf("%d", r.GetColCountNumbers(i)) //@todo
 	}
 	out += " (" + strconv.Itoa(sum) + ")\n"
 	out += "\n"
@@ -149,58 +156,60 @@ func (r RowCollection) String() string {
 
 func (r RowCollection) Reset(grid [][]int) {
 	r.count = 0
+	r.rows = 0
 
 	for i := 0; i < len(grid); i++ {
-		r.rows[i] = 0
-
-		for j := 0; j < len(grid); j++ {
+		var tmp uint64
+		for j := 0; j < 7; j++ {
 			if grid[i][j] != 0 {
-				r.rows[i] |= 1 << (6 - i)
+				tmp |= 1 << (6 - i)
 				r.count++
 			}
 		}
+		r.rows |= tmp << (6 - i)
 	}
 }
 
 func (r *RowCollection) Set(i uint8, j uint8) {
-	r.rows[i] |= 1 << (6 - j)
+	r.rows |= 1 << (7*(6-i) + 6 - j)
 	r.count++
 }
 
 func (r *RowCollection) SetV(i uint8, j uint8, v int8) {
-	r.rows[i] |= Row(v) << (6 - j)
-	//r.count += eq(v, 1) // Removing the count gets us ~28M / sec,
-	// but the wrong answer (242 valid boards with panic) 242 without... no change
+	r.rows |= uint64(v) << (7*(6-i) + 6 - j)
+	//r.rows[i] |= Row(v) << (6 - j)
+	////r.count += eq(v, 1) // Removing the count gets us ~28M / sec,
+	//// but the wrong answer (242 valid boards with panic) 242 without... no change
 }
 
 func (r RowCollection) Transpose() RowCollection {
 	res := RowCollection{
 		count: r.count,
-		rows:  make([]Row, 7),
+		rows:  0,
 	}
 
-	var v Row
+	var v uint8
 	for i := 0; i < 7; i++ {
-		v = r.rows[i] >> (6) & 1
-		res.rows[6] |= v << (6 - i)
+		v = uint8(r.rows>>(7*(6-i)+6)) & mask & 1
+		res.rows |= (uint64(v) << (6 - i)) << (7 * (6 - 6))
 
-		v = r.rows[i] >> (5) & 1
-		res.rows[5] |= v << (6 - i)
+		v = uint8(r.rows>>(7*(6-i)+5)) & mask & 1
+		res.rows |= (uint64(v) << (6 - i)) << (7 * (6 - 5))
 
-		v = r.rows[i] >> (4) & 1
-		res.rows[4] |= v << (6 - i)
+		v = uint8(r.rows>>(7*(6-i)+4)) & mask & 1
+		res.rows |= (uint64(v) << (6 - i)) << (7 * (6 - 4))
 
-		v = r.rows[i] >> (3) & 1
-		res.rows[3] |= v << (6 - i)
+		v = uint8(r.rows>>(7*(6-i)+3)) & mask & 1
+		res.rows |= (uint64(v) << (6 - i)) << (7 * (6 - 3))
 
-		v = r.rows[i] >> (2) & 1
-		res.rows[2] |= v << (6 - i)
+		v = uint8(r.rows>>(7*(6-i)+2)) & mask & 1
+		res.rows |= (uint64(v) << (6 - i)) << (7 * (6 - 2))
 
-		v = r.rows[i] >> (1) & 1
-		res.rows[1] |= v << (6 - i)
+		v = uint8(r.rows>>(7*(6-i)+1)) & mask & 1
+		res.rows |= (uint64(v) << (6 - i)) << (7 * (6 - 1))
 
-		v = r.rows[i] >> (0) & 1
-		res.rows[0] |= v << (6 - i)
+		v = uint8(r.rows>>(7*(6-i)+0)) & mask & 1
+		res.rows |= (uint64(v) << (6 - i)) << (7 * (6 - 0))
 	}
 
 	return res

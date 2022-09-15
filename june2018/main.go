@@ -64,6 +64,11 @@ func getValidBoardStructures() []uint64 {
 	var keys []uint64
 	empties := generateEmpties()
 
+	emptyOffsets := make([]uint8, len(empties))
+	for i := 0; i < len(empties); i++ {
+		emptyOffsets[i] = 7*(6-empties[i].row) + 6 - empties[i].col
+	}
+
 	var iterations int
 	start := time.Now()
 
@@ -78,10 +83,11 @@ func getValidBoardStructures() []uint64 {
 	for i := 0; i < 7; i++ {
 		grid[i] = make([]int, 7)
 	}
+
 	var x uint64
 
 	for {
-		copy(rows.rows, orig.rows)
+		rows.rows = orig.rows
 		rows.count = orig.count
 
 		// Find the lexicographically next combination that has 15 bits
@@ -94,54 +100,9 @@ func getValidBoardStructures() []uint64 {
 			return keys
 		}
 
-		// This looks gross, but is quite simple. It is just an
-		// unrolled loop performing the following:
-		//
-		// for i:=0;i <36; i++ {
-		// 	 v := key & (1 << i)
-		// 	 if v != 0 {
-		// 	   rows.Set(empties[i].row,empties[i].col)
-		// 	 }
-		// }
-		//
-		// The neq(key&(1<<i)) is a branchless version of the if statement.
-		// It will return 1 when not equal and 0 when they are equal.
-		rows.SetV(empties[0].row, empties[0].col, neq(key&(1<<0), 0))
-		rows.SetV(empties[1].row, empties[1].col, neq(key&(1<<1), 0))
-		rows.SetV(empties[2].row, empties[2].col, neq(key&(1<<2), 0))
-		rows.SetV(empties[3].row, empties[3].col, neq(key&(1<<3), 0))
-		rows.SetV(empties[4].row, empties[4].col, neq(key&(1<<4), 0))
-		rows.SetV(empties[5].row, empties[5].col, neq(key&(1<<5), 0))
-		rows.SetV(empties[6].row, empties[6].col, neq(key&(1<<6), 0))
-		rows.SetV(empties[7].row, empties[7].col, neq(key&(1<<7), 0))
-		rows.SetV(empties[8].row, empties[8].col, neq(key&(1<<8), 0))
-		rows.SetV(empties[9].row, empties[9].col, neq(key&(1<<9), 0))
-		rows.SetV(empties[10].row, empties[10].col, neq(key&(1<<10), 0))
-		rows.SetV(empties[11].row, empties[11].col, neq(key&(1<<11), 0))
-		rows.SetV(empties[12].row, empties[12].col, neq(key&(1<<12), 0))
-		rows.SetV(empties[13].row, empties[13].col, neq(key&(1<<13), 0))
-		rows.SetV(empties[14].row, empties[14].col, neq(key&(1<<14), 0))
-		rows.SetV(empties[15].row, empties[15].col, neq(key&(1<<15), 0))
-		rows.SetV(empties[16].row, empties[16].col, neq(key&(1<<16), 0))
-		rows.SetV(empties[17].row, empties[17].col, neq(key&(1<<17), 0))
-		rows.SetV(empties[18].row, empties[18].col, neq(key&(1<<18), 0))
-		rows.SetV(empties[19].row, empties[19].col, neq(key&(1<<19), 0))
-		rows.SetV(empties[20].row, empties[20].col, neq(key&(1<<20), 0))
-		rows.SetV(empties[21].row, empties[21].col, neq(key&(1<<21), 0))
-		rows.SetV(empties[22].row, empties[22].col, neq(key&(1<<22), 0))
-		rows.SetV(empties[23].row, empties[23].col, neq(key&(1<<23), 0))
-		rows.SetV(empties[24].row, empties[24].col, neq(key&(1<<24), 0))
-		rows.SetV(empties[25].row, empties[25].col, neq(key&(1<<25), 0))
-		rows.SetV(empties[26].row, empties[26].col, neq(key&(1<<26), 0))
-		rows.SetV(empties[27].row, empties[27].col, neq(key&(1<<27), 0))
-		rows.SetV(empties[28].row, empties[28].col, neq(key&(1<<28), 0))
-		rows.SetV(empties[29].row, empties[29].col, neq(key&(1<<29), 0))
-		rows.SetV(empties[30].row, empties[30].col, neq(key&(1<<30), 0))
-		rows.SetV(empties[31].row, empties[31].col, neq(key&(1<<31), 0))
-		rows.SetV(empties[32].row, empties[32].col, neq(key&(1<<32), 0))
-		rows.SetV(empties[33].row, empties[33].col, neq(key&(1<<33), 0))
-		rows.SetV(empties[34].row, empties[34].col, neq(key&(1<<34), 0))
-		rows.SetV(empties[35].row, empties[35].col, neq(key&(1<<35), 0))
+		// Convert that key into a mask, then OR it on the
+		// current rows to set all the filled cells.
+		rows.rows |= keyToMask(key)
 		rows.count += 15
 
 		// The order of checks is important for performance. We have the fastest
@@ -172,7 +133,7 @@ func getValidBoardStructures() []uint64 {
 		if iterations%100000000 == 0 {
 			fmt.Printf("Iterations: %dM after %s (%.2fM / sec)\n", iterations/1000000, time.Since(start), float64(iterations)/1000000/time.Since(start).Seconds())
 			fmt.Printf("    Binary key: %64b %[1]d\n", key)
-			return nil // @todo just for dev / bench
+			//return nil // @todo just for dev / bench
 		}
 	}
 }
@@ -188,6 +149,10 @@ func getValidBoardStructures() []uint64 {
 // that map to a board that does not pass the numeric checks. If it finds a
 // valid board, it prints it out to count the last step manually.
 func validateBoardStructures(keys []uint64) {
+	if len(keys) == 0 {
+		panic("uhh oh - didn't get any valid boards")
+	}
+
 	valid := true
 	var cp Board
 
