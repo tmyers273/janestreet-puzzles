@@ -26,6 +26,29 @@ type Board2 struct {
 	counts []int
 }
 
+func (b *Board2) Clone() Board2 {
+	newGrid := make([][]int, 7)
+	for i := 0; i < 7; i++ {
+		newGrid[i] = make([]int, 7)
+		copy(newGrid[i], b.grid[i])
+	}
+
+	newRows := RowCollection{
+		rows: make([]Row, 7),
+	}
+	copy(newRows.rows, b.rows.rows)
+	newRows.count = b.rows.count
+
+	newCounts := make([]int, 8)
+	copy(newCounts, b.counts)
+
+	return Board2{
+		grid:   newGrid,
+		rows:   newRows,
+		counts: newCounts,
+	}
+}
+
 func (b *Board2) FillEasy() State {
 	madeChanges := true
 	changeCount := 0
@@ -111,4 +134,36 @@ func (b *Board2) set(row, col, value int) bool {
 	b.counts[value]++
 
 	return b.counts[value] <= value
+}
+
+func (b *Board2) passesSumChecks() bool {
+	for i := 0; i < 7; i++ {
+		if !b.passesRowSum(i) || !b.passesColSum(i) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (b *Board2) passesSumCheck(i, j int) bool {
+	return b.passesRowSum(i) && b.passesColSum(j)
+}
+
+func (b *Board2) passesRowSum(i int) bool {
+	sum := 0
+	for j := 0; j < 7; j++ {
+		sum += b.grid[i][j]
+	}
+
+	return sum == 20
+}
+
+func (b *Board2) passesColSum(i int) bool {
+	sum := 0
+	for j := 0; j < 7; j++ {
+		sum += b.grid[j][i]
+	}
+
+	return sum == 20
 }

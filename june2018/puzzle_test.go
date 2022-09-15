@@ -1,6 +1,7 @@
 package june2018
 
 import (
+	"errors"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"os"
@@ -90,6 +91,9 @@ func TestValidBoardsPass2(t *testing.T) {
 		panic(err)
 	}
 
+	valid := true
+	var cp Board2
+
 	for _, key := range keys {
 		b := NewBoard2FromKey(key)
 		state := b.FillEasy()
@@ -97,10 +101,73 @@ func TestValidBoardsPass2(t *testing.T) {
 		if state == StateInvalid {
 			continue
 		}
-		fmt.Printf("Key: %d, State: %s\n", key, state)
-		printGrid(b.grid)
-		fmt.Println(b.rows)
+		fmt.Printf("Key: %d, State: %s passed initial screening\n", key, state)
+
+		var remaining []int
+		for i := 1; i <= 7; i++ {
+			for j := 0; j < i-b.counts[i]; j++ {
+				remaining = append(remaining, int(i))
+			}
+		}
+		empties := make([]tuple, len(remaining))
+		cnt := 0
+		for i := 0; i < 7; i++ {
+			for j := 0; j < 7; j++ {
+				if b.grid[i][j] == 9 {
+					empties[cnt] = tuple{uint8(i), uint8(j)}
+					cnt++
+				}
+			}
+		}
+
+		cp = b.Clone()
+		permuatations := 0
+		quickPerm(remaining, func(nums []int) error {
+			cp = b.Clone()
+			valid = true
+
+			for i := 0; i < len(nums); i++ {
+				ok := cp.set(int(empties[i].row), int(empties[i].col), nums[i])
+				if !ok {
+					fmt.Printf("failed set when setting %d to %d,%d\n", nums[i], empties[i].row, empties[i].col)
+					valid = false
+					break
+				}
+			}
+
+			if valid && cp.passesSumChecks() {
+				return errors.New("done")
+			}
+
+			permuatations++
+			return nil
+		})
+
+		if valid {
+			break
+		}
+
 	}
+
+	// The answer to this puzzle is the product of the areas of the
+	// connected groups of empty squares in the completed grid.
+	printGrid(cp.grid)
+	fmt.Println("Found answer!")
+
+	/*
+		7 4 3 _ 6 _ _
+		_ _ 6 3 5 _ 6
+		_ _ 5 _ 5 5 5
+		_ 3 6 4 _ _ 7
+		4 7 _ _ _ 7 2
+		2 _ _ 7 4 7 _
+		7 6 _ 6 _ 1 _
+	*/
+
+	// 1*3*1*5**8*1*2=240
+	// 49 boxes - 21 missing = 28 filled
+
+	return
 }
 
 func TestChannelSpeed(t *testing.T) {
