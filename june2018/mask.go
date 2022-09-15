@@ -1,6 +1,7 @@
 package main
 
 var maskList [][]uint64
+var empties []tuple
 
 // Here we will generate a lookup table mapping all the key bytes to
 // possible set bits in the final mask. We will use this to generate
@@ -8,7 +9,7 @@ var maskList [][]uint64
 // OR'ing the results. Thing final mask can then be OR'ed on the
 // rows to generate all the set bits.
 func init() {
-	empties := generateEmpties()
+	empties = generateEmpties()
 	emptyOffsets := make([]uint8, len(empties))
 	for i := 0; i < len(empties); i++ {
 		emptyOffsets[i] = 7*(6-empties[i].row) + 6 - empties[i].col

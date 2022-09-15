@@ -1,3 +1,12 @@
+// package main solves the puzzle!
+//
+// It works in a two pass approach. First, it generates a lsit of
+// structurally possible boards. These are defined as boards that
+// pass the 2x2 check, the 4 per row/col check, and the continuity
+// check.
+//
+// Once we have a list of structurally possible boards, we then
+// generate the actual numbers for each board.
 package main
 
 import (
@@ -6,15 +15,7 @@ import (
 	"time"
 )
 
-/*
- * The grid is incomplete. Place numbers in some of the empty cells below so that in total the grid contains
- * one 1, two 2’s, etc., up to seven 7’s. Furthermore, each row and column must contain exactly 4 numbers
- * which sum to 20. Finally, the numbered cells must form a connected region*, but every 2-by-2 subsquare
- * in the completed grid must contain at least one empty cell.
- *
- * The answer to this puzzle is the product of the areas of the connected groups of empty squares in the completed grid.
- */
-
+// Notes:
 // Should have 28 nums (7+6+5+4+3+2+1 = 28)
 // Start with 13, need to add 15 more
 // 49 spots, 13 filled, 36 left to place 15
@@ -59,22 +60,13 @@ func main() {
 // Once we have generated a list of valid keys, we need to do a second pass to generate
 // The actual numbers in the correct locations.
 //
-// ~15M checks / sec with a ~6min runtime
+// ~63M checks / sec with a ~1.5min runtime
 func getValidBoardStructures() []uint64 {
 	var keys []uint64
-	empties := generateEmpties()
-
-	emptyOffsets := make([]uint8, len(empties))
-	for i := 0; i < len(empties); i++ {
-		emptyOffsets[i] = 7*(6-empties[i].row) + 6 - empties[i].col
-	}
-
 	var iterations int
 	start := time.Now()
 
-	//var key uint64 = 0
 	var key uint64 = 1<<15 - 1
-	//var key uint64 = 7669990665
 	var rows RowCollection
 	validCount := 0
 	rows = NewRowRepresentation(oGrid)
