@@ -91,17 +91,14 @@ func (r RowCollection) Passes4Check() bool {
 // It does this by doing a bitwise AND on two adjacent rows, then checking
 // two see if they have two adjacent bits set.
 func (r RowCollection) Passes2x2() bool {
-	var sum uint8
-	rows := r.rows
+	a := uint8(r.rows>>(7*(6-0))) & mask & uint8(r.rows>>(7*(6-1)))
+	b := uint8(r.rows>>(7*(6-1))) & mask & uint8(r.rows>>(7*(6-2)))
+	c := uint8(r.rows>>(7*(6-2))) & mask & uint8(r.rows>>(7*(6-3)))
+	d := uint8(r.rows>>(7*(6-3))) & mask & uint8(r.rows>>(7*(6-4)))
+	e := uint8(r.rows>>(7*(6-4))) & mask & uint8(r.rows>>(7*(6-5)))
+	f := uint8(r.rows>>(7*(6-5))) & mask & uint8(r.rows>>(7*(6-6)))
 
-	sum += (uint8(rows>>(7*(6-0))) & mask & uint8(rows>>(7*(6-1)))) & mask & ((uint8(rows>>(7*(6-0))) & mask & uint8(rows>>(7*(6-1)))) & mask >> 1)
-	sum += (uint8(rows>>(7*(6-1))) & mask & uint8(rows>>(7*(6-2)))) & mask & ((uint8(rows>>(7*(6-1))) & mask & uint8(rows>>(7*(6-2)))) & mask >> 1)
-	sum += (uint8(rows>>(7*(6-2))) & mask & uint8(rows>>(7*(6-3)))) & mask & ((uint8(rows>>(7*(6-2))) & mask & uint8(rows>>(7*(6-3)))) & mask >> 1)
-	sum += (uint8(rows>>(7*(6-3))) & mask & uint8(rows>>(7*(6-4)))) & mask & ((uint8(rows>>(7*(6-3))) & mask & uint8(rows>>(7*(6-4)))) & mask >> 1)
-	sum += (uint8(rows>>(7*(6-4))) & mask & uint8(rows>>(7*(6-5)))) & mask & ((uint8(rows>>(7*(6-4))) & mask & uint8(rows>>(7*(6-5)))) & mask >> 1)
-	sum += (uint8(rows>>(7*(6-5))) & mask & uint8(rows>>(7*(6-6)))) & mask & ((uint8(rows>>(7*(6-5))) & mask & uint8(rows>>(7*(6-6)))) & mask >> 1)
-
-	return sum == 0
+	return a&(a>>1)+b&(b>>1)+c&(c>>1)+d&(d>>1)+e&(e>>1)+f&(f>>1) == 0
 }
 
 func (r Row) String() string {

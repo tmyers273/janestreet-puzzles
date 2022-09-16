@@ -60,7 +60,7 @@ func main() {
 // Once we have generated a list of valid keys, we need to do a second pass to generate
 // The actual numbers in the correct locations.
 //
-// ~63M checks / sec with a ~1.5min runtime
+// ~102M checks / sec with a ~54sec runtime
 func getValidBoardStructures() []uint64 {
 	var keys []uint64
 	var iterations int
@@ -94,7 +94,15 @@ func getValidBoardStructures() []uint64 {
 
 		// Convert that key into a mask, then OR it on the
 		// current rows to set all the filled cells.
-		rows.rows |= keyToMask(key)
+		rows.rows |= maskList[0][byte(key>>(8*0))] // 0-8
+		rows.rows |= maskList[1][byte(key>>(8*1))] // 8-16
+		rows.rows |= maskList[2][byte(key>>(8*2))] // 16-24
+		rows.rows |= maskList[3][byte(key>>(8*3))] // 24-32
+		rows.rows |= maskList[4][byte(key>>(8*4))] // 32-40
+		rows.rows |= maskList[5][byte(key>>(8*5))] // 40-48
+		rows.rows |= maskList[6][byte(key>>(8*6))] // 48-56
+		// 7th byte as skipped, as it's holding data for
+		//cells 56-64, which we don't use
 		rows.count += 15
 
 		// The order of checks is important for performance. We have the fastest
@@ -122,7 +130,7 @@ func getValidBoardStructures() []uint64 {
 		}
 
 		iterations++
-		if iterations%100000000 == 0 {
+		if iterations%250000000 == 0 {
 			fmt.Printf("Iterations: %dM after %s (%.2fM / sec)\n", iterations/1000000, time.Since(start), float64(iterations)/1000000/time.Since(start).Seconds())
 			fmt.Printf("    Binary key: %64b %[1]d\n", key)
 			//return nil // @todo just for dev / bench

@@ -41,9 +41,18 @@ func init() {
 // all the filled slots.
 func keyToMask(key uint64) uint64 {
 	var final uint64
-	for i := 0; i < 8; i++ {
-		b := byte(key >> (8 * i))
-		final |= maskList[i][b]
-	}
+
+	final |= maskList[0][byte(key>>(8*0))] // 0-8
+	final |= maskList[1][byte(key>>(8*1))] // 8-16
+	final |= maskList[2][byte(key>>(8*2))] // 16-24
+	final |= maskList[3][byte(key>>(8*3))] // 24-32
+	final |= maskList[4][byte(key>>(8*4))] // 32-40
+	final |= maskList[5][byte(key>>(8*5))] // 40-48
+	final |= maskList[6][byte(key>>(8*6))] // 48-56
+
+	// Last byte can be skipped, since we will only
+	// ever have 49 cells.
+	//final |= maskList[7][byte(key>>(8*7))]
+
 	return final
 }
