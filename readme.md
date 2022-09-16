@@ -6,8 +6,9 @@
 ### Completed Puzzles
 - [June 2018 - Twenty Four Seven](./june2018)  
   _Solved Sept 15th, 2022_  
-  A really fun problem. A bruteforce-esque solution, solved via Hamming weights, fastPerm, a bit of recursion, 
-  some loop unrolling + branchless code, and a whole lot of bit twiddling.  
+  A really fun problem. A bruteforce-esque solution, fastPerm, a bit of recursion, 
+  some loop unrolling + branchless code, and a whole lot of bit twiddling. Running
+  ~100M board generations / sec.
 
 ### Todo Puzzles
 - [ ] https://www.janestreet.com/puzzles/spiral-region-index/
